@@ -1,8 +1,8 @@
 # Supabase setup
 
-## 1. Create the alert table
+## 1. Create the alert table and secure admin access
 
-In the Supabase SQL Editor, run:
+Run this once in the Supabase SQL Editor. The single row (`id = 1`) stores the current public alert. Writes require a signed-in user ID in the `flood_alert_admins` allowlist.
 
 ```sql
 create table if not exists public.flood_alerts (
@@ -15,41 +15,67 @@ create table if not exists public.flood_alerts (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.flood_alert_admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
+
 alter table public.flood_alerts enable row level security;
+alter table public.flood_alert_admins enable row level security;
 
+grant select on public.flood_alerts to anon, authenticated;
+grant insert, update on public.flood_alerts to authenticated;
+grant select on public.flood_alert_admins to authenticated;
+
+drop policy if exists "Anyone can read the current flood alert" on public.flood_alerts;
 create policy "Anyone can read the current flood alert"
-  on public.flood_alerts for select
-  to anon, authenticated
-  using (true);
+  on public.flood_alerts for select to anon, authenticated using (true);
 
+drop policy if exists "Admins can view their own admin record" on public.flood_alert_admins;
+create policy "Admins can view their own admin record"
+  on public.flood_alert_admins for select to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists "Signed-in admins can insert the current flood alert" on public.flood_alerts;
 create policy "Signed-in admins can insert the current flood alert"
-  on public.flood_alerts for insert
-  to authenticated
-  with check (id = 1);
+  on public.flood_alerts for insert to authenticated
+  with check (id = 1 and exists (
+    select 1 from public.flood_alert_admins where user_id = auth.uid()
+  ));
 
+drop policy if exists "Signed-in admins can update the current flood alert" on public.flood_alerts;
 create policy "Signed-in admins can update the current flood alert"
-  on public.flood_alerts for update
-  to authenticated
-  using (id = 1)
-  with check (id = 1);
+  on public.flood_alerts for update to authenticated
+  using (id = 1 and exists (
+    select 1 from public.flood_alert_admins where user_id = auth.uid()
+  ))
+  with check (id = 1 and exists (
+    select 1 from public.flood_alert_admins where user_id = auth.uid()
+  ));
 
 insert into public.flood_alerts (id, signal_level, flood_status, affected_locations)
 values (1, 'SIGNAL NO. 2', 'Flooding Reported', array[]::text[])
 on conflict (id) do nothing;
 ```
 
-The `id = 1` constraint makes this table a single current alert. The browser calls Supabase directly: anonymous visitors can read it and signed-in users can write it. Only create trusted admin accounts in Supabase Auth; do not enable public sign-ups. If the project has other users, use a separate admin role/allowlist and tighten the write policies before giving them accounts.
+Create your admin in **Authentication > Users**. Copy its UUID and authorize it with:
+
+```sql
+insert into public.flood_alert_admins (user_id)
+values ('PASTE-ADMIN-USER-UUID-HERE');
+```
+
+If you previously ran older setup SQL, rerun the SQL above to replace the earlier broad write policies, then add the admin UUID. Only allowlisted users can write, even if public sign-ups are enabled.
 
 ## 2. Enable Realtime
 
-In Supabase, open **Database → Publications** and enable `flood_alerts` for the `supabase_realtime` publication. The public page also polls once a minute as a fallback.
+In Supabase, open **Database > Publications** and enable `flood_alerts` for the `supabase_realtime` publication. The public page also polls once a minute as a fallback.
 
-## 3. Configure this app
+## 3. Configure the app
 
-Open `public/supabase-config.js` and replace the placeholders with your Supabase **Project URL** and **anon/public key** from **Project Settings → API**. The anon key is designed for browser use with RLS enabled. Never put the `service_role` key in this file.
+In `public/supabase-config.js`, replace `YOUR_PROJECT_ID` with your Supabase project ID from **Project Settings > API**. The existing publishable/anon key is intended for browser use with RLS enabled. Never place a `service_role` or secret key in browser code. The app stays in setup mode until the project URL placeholder is replaced.
 
-Create the admin email/password in **Authentication → Users** in the Supabase Dashboard. Then run `npm start`, visit `/login`, and sign in. `/admin` checks the Supabase session in the browser; Supabase RLS is the actual database access control.
+Run `npm start`, visit `/login`, and sign in. `/admin` checks the browser session, while Supabase RLS and the allowlist enforce write access.
 
 ## 4. Deploying
 
-For a public deployment, host this Express app (or serve `public` as static files) and configure the host to use its assigned `PORT`. Add your deployed origin to Supabase **Authentication → URL Configuration → Site URL / Redirect URLs**. The included browser auto-open is intended for local development; disable that behavior on a hosted server if needed.
+Host this Express app (or serve `public` as static files) and configure the host to use its assigned `PORT`. Add the deployed origin to Supabase **Authentication > URL Configuration > Site URL / Redirect URLs**. Browser auto-open is only for local development.

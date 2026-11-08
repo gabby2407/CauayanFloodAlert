@@ -11,7 +11,7 @@ else {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!isSupabaseConfigured) return;
-  const button = form.querySelector('button'); button.disabled = true; message.textContent = 'Signing in…';
+  const button = form.querySelector('button'); button.disabled = true; message.textContent = 'Signing in...';
   const { error } = await supabase.auth.signInWithPassword({
     email: form.elements.email.value.trim(), password: form.elements.password.value
   });

@@ -26,7 +26,7 @@ if (!isSupabaseConfigured) {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!isSupabaseConfigured) return;
-  const button = form.querySelector('button[type=submit]'); button.disabled = true; message.textContent = 'Saving alert…'; message.className = 'form-message';
+  const button = form.querySelector('button[type=submit]'); button.disabled = true; message.textContent = 'Saving alert...'; message.className = 'form-message';
   const locations = form.elements.locations.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
   const { error } = await supabase.from('flood_alerts').upsert({
     id: 1,
