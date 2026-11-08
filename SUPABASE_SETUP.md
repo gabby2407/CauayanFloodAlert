@@ -2,11 +2,12 @@
 
 ## 1. Create the alert table and secure admin access
 
-Run this once in the Supabase SQL Editor. The single row (`id = 1`) stores the current public alert. Writes require a signed-in user ID in the `flood_alert_admins` allowlist.
+Run this once in the Supabase SQL Editor. The alert uses a fixed UUID so the same row is read and updated every time. Writes require a signed-in user ID in the `flood_alert_admins` allowlist.
 
 ```sql
 create table if not exists public.flood_alerts (
-  id integer primary key check (id = 1),
+  id uuid primary key default '00000000-0000-0000-0000-000000000001'
+    check (id = '00000000-0000-0000-0000-000000000001'),
   signal_level text not null default 'NO ACTIVE SIGNAL'
     check (signal_level in ('NO ACTIVE SIGNAL', 'SIGNAL NO. 1', 'SIGNAL NO. 2', 'SIGNAL NO. 3', 'SIGNAL NO. 4', 'SIGNAL NO. 5')),
   flood_status text not null default 'No Flooding'
@@ -38,22 +39,22 @@ create policy "Admins can view their own admin record"
 drop policy if exists "Signed-in admins can insert the current flood alert" on public.flood_alerts;
 create policy "Signed-in admins can insert the current flood alert"
   on public.flood_alerts for insert to authenticated
-  with check (id = 1 and exists (
+  with check (id = '00000000-0000-0000-0000-000000000001'::uuid and exists (
     select 1 from public.flood_alert_admins where user_id = auth.uid()
   ));
 
 drop policy if exists "Signed-in admins can update the current flood alert" on public.flood_alerts;
 create policy "Signed-in admins can update the current flood alert"
   on public.flood_alerts for update to authenticated
-  using (id = 1 and exists (
+  using (id = '00000000-0000-0000-0000-000000000001'::uuid and exists (
     select 1 from public.flood_alert_admins where user_id = auth.uid()
   ))
-  with check (id = 1 and exists (
+  with check (id = '00000000-0000-0000-0000-000000000001'::uuid and exists (
     select 1 from public.flood_alert_admins where user_id = auth.uid()
   ));
 
 insert into public.flood_alerts (id, signal_level, flood_status, affected_locations)
-values (1, 'SIGNAL NO. 2', 'Flooding Reported', array[]::text[])
+values ('00000000-0000-0000-0000-000000000001', 'SIGNAL NO. 2', 'Flooding Reported', array[]::text[])
 on conflict (id) do nothing;
 ```
 

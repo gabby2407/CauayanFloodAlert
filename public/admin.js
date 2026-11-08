@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase.js';
+import { supabase, isSupabaseConfigured, ALERT_ID } from './supabase.js';
 
 const form = document.querySelector('#alert-form');
 const message = document.querySelector('#message');
@@ -12,7 +12,7 @@ if (!isSupabaseConfigured) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) location.replace('/login');
   else {
-    const { data, error } = await supabase.from('flood_alerts').select('*').eq('id', 1).maybeSingle();
+    const { data, error } = await supabase.from('flood_alerts').select('*').eq('id', ALERT_ID).maybeSingle();
     if (error) message.textContent = `Could not load alert: ${error.message}`;
     if (data) {
       form.elements.signal.value = data.signal_level;
@@ -29,7 +29,7 @@ form.addEventListener('submit', async (event) => {
   const button = form.querySelector('button[type=submit]'); button.disabled = true; message.textContent = 'Saving alert...'; message.className = 'form-message';
   const locations = form.elements.locations.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
   const { error } = await supabase.from('flood_alerts').upsert({
-    id: 1,
+    id: ALERT_ID,
     signal_level: form.elements.signal.value,
     flood_status: form.elements.flood.value,
     affected_locations: locations,

@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase.js';
+import { supabase, isSupabaseConfigured, ALERT_ID } from './supabase.js';
 
 const signalElement = document.querySelector('#signal');
 const floodElement = document.querySelector('#flood');
@@ -34,7 +34,7 @@ async function loadAlert() {
     notice.textContent = 'Set the Supabase URL and anon key in public/supabase-config.js to load live alerts.';
     notice.classList.add('error'); return;
   }
-  const { data, error } = await supabase.from('flood_alerts').select('*').eq('id', 1).maybeSingle();
+  const { data, error } = await supabase.from('flood_alerts').select('*').eq('id', ALERT_ID).maybeSingle();
   if (error) {
     notice.textContent = `Unable to load alert: ${error.message}`;
     notice.classList.add('error'); return;
@@ -47,7 +47,7 @@ async function loadAlert() {
 loadAlert();
 if (isSupabaseConfigured) {
   supabase.channel('public-flood-alert')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'flood_alerts', filter: 'id=eq.1' }, loadAlert)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'flood_alerts', filter: `id=eq.${ALERT_ID}` }, loadAlert)
     .subscribe();
   // Keep the public page fresh if Realtime is unavailable or temporarily disconnected.
   window.setInterval(loadAlert, 60000);
