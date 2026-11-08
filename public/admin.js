@@ -7,6 +7,17 @@ const logoutButton = document.querySelector('#logout');
 
 let isReady = false;
 let hasLocalEdits = false;
+// The setup SQL uses text[], while an existing project may have a text column.
+// Detect the existing row's format so updates preserve its column type.
+let affectedLocationsAreArray = true;
+
+function formatLocationsForForm(value) {
+  if (Array.isArray(value)) return value.join('\n');
+  if (typeof value === 'string') {
+    return value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean).join('\n');
+  }
+  return '';
+}
 
 // Attach handlers immediately, so slow Supabase reads cannot swallow clicks.
 form.addEventListener('input', () => { hasLocalEdits = true; });
@@ -33,7 +44,7 @@ form.addEventListener('submit', async (event) => {
       id: ALERT_ID,
       signal_level: form.elements.signal.value,
       flood_status: form.elements.flood.value,
-      affected_locations: locations,
+      affected_locations: affectedLocationsAreArray ? locations : locations.join('\n'),
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 
@@ -94,10 +105,13 @@ async function initializeDashboard() {
       return;
     }
     // Do not replace text the admin has already started entering.
-    if (data && !hasLocalEdits) {
-      form.elements.signal.value = data.signal_level;
-      form.elements.flood.value = data.flood_status;
-      form.elements.locations.value = (data.affected_locations || []).join('\n');
+    if (data) {
+      affectedLocationsAreArray = Array.isArray(data.affected_locations);
+      if (!hasLocalEdits) {
+        form.elements.signal.value = data.signal_level;
+        form.elements.flood.value = data.flood_status;
+        form.elements.locations.value = formatLocationsForForm(data.affected_locations);
+      }
     }
   } catch (error) {
     message.textContent = `Could not initialize admin dashboard: ${error.message || 'Network request failed.'}`;
