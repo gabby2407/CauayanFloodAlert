@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10151d">
+  <title>Cauayan City Flood Alert</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="public-page">
+  <main class="container">
+    <nav class="topbar"><span class="eyebrow">ISABELA • PHILIPPINES</span><a class="quiet-link" href="/login">Admin Login</a></nav>
+    <header class="hero">
+      <div class="status-mark" aria-hidden="true">〰</div>
+      <p class="eyebrow">COMMUNITY WEATHER & FLOOD WATCH</p>
+      <h1>Cauayan City<br>Flood Alert</h1>
+      <p class="location">Cauayan City, Isabela</p>
+    </header>
+    <div id="notice" class="notice" role="status">Connecting to alert service…</div>
+    <section class="alert-grid" aria-label="Current alert information">
+      <article class="card signal-card"><p class="card-label">TROPICAL CYCLONE WARNING</p><div id="signal" class="metric">Loading…</div></article>
+      <article class="card"><p class="card-label">OVERALL FLOOD STATUS</p><div id="flood" class="metric">Loading…</div></article>
+      <article class="card locations-card"><p class="card-label">AFFECTED LOCATIONS</p><ul id="locations" class="location-list"><li>Loading locations…</li></ul></article>
+    </section>
+    <footer class="page-footer"><span id="updated">Last updated: Loading…</span><span>Follow official advisories for emergencies.</span></footer>
+  </main>
+  <script type="module" src="/script.js"></script>
+</body>
+</html>
