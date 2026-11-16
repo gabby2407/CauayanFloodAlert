@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured, ALERT_ID } from './supabase.js';
+import { renderFloodLevel } from './flood-level.js';
 
 const signalElement = document.querySelector('#signal');
 const floodElement = document.querySelector('#flood');
@@ -8,6 +9,7 @@ const notice = document.querySelector('#notice');
 
 function renderAlert(alert) {
   if (!alert) {
+    renderFloodLevel(0);
     signalElement.textContent = 'No alert published';
     floodElement.textContent = 'No data';
     locationsElement.innerHTML = '<li class="empty-location">No locations reported.</li>';
@@ -15,6 +17,7 @@ function renderAlert(alert) {
     return;
   }
   signalElement.textContent = alert.signal_level || 'No active signal';
+  renderFloodLevel(alert.flood_level_percentage ?? 0);
   floodElement.textContent = alert.flood_status || 'Status unavailable';
   document.body.classList.toggle('sunny', alert.signal_level === 'NO ACTIVE SIGNAL');
   locationsElement.replaceChildren();

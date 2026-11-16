@@ -12,6 +12,8 @@ create table if not exists public.flood_alerts (
     check (signal_level in ('NO ACTIVE SIGNAL', 'SIGNAL NO. 1', 'SIGNAL NO. 2', 'SIGNAL NO. 3', 'SIGNAL NO. 4', 'SIGNAL NO. 5')),
   flood_status text not null default 'No Flooding'
     check (flood_status in ('No Flooding', 'Flooding Reported', 'Critical Flooding')),
+  flood_level_percentage integer not null default 0
+    check (flood_level_percentage between 0 and 100 and flood_level_percentage % 5 = 0),
   affected_locations text[] not null default '{}',
   updated_at timestamptz not null default now()
 );
@@ -53,8 +55,8 @@ create policy "Signed-in admins can update the current flood alert"
     select 1 from public.flood_alert_admins where user_id = auth.uid()
   ));
 
-insert into public.flood_alerts (id, signal_level, flood_status, affected_locations)
-values ('00000000-0000-0000-0000-000000000001', 'SIGNAL NO. 2', 'Flooding Reported', array[]::text[])
+insert into public.flood_alerts (id, signal_level, flood_status, flood_level_percentage, affected_locations)
+values ('00000000-0000-0000-0000-000000000001', 'SIGNAL NO. 2', 'Flooding Reported', 0, array[]::text[])
 on conflict (id) do nothing;
 ```
 
@@ -66,6 +68,14 @@ values ('PASTE-ADMIN-USER-UUID-HERE');
 ```
 
 If you previously ran older setup SQL, rerun the SQL above to replace the earlier broad write policies, then add the admin UUID. Only allowlisted users can write, even if public sign-ups are enabled.
+
+For an existing `flood_alerts` table, add the percentage column once in the SQL Editor:
+
+```sql
+alter table public.flood_alerts
+  add column if not exists flood_level_percentage integer not null default 0
+  check (flood_level_percentage between 0 and 100 and flood_level_percentage % 5 = 0);
+```
 
 ## 2. Enable Realtime
 

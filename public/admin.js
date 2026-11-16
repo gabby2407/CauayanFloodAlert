@@ -1,9 +1,17 @@
 import { supabase, isSupabaseConfigured, ALERT_ID } from './supabase.js';
+import { renderFloodLevel } from './flood-level.js';
 
 const form = document.querySelector('#alert-form');
 const message = document.querySelector('#message');
 const saveButton = form.querySelector('button[type=submit]');
 const logoutButton = document.querySelector('#logout');
+const levelSelect = form.elements.flood_level_percentage;
+for (let level = 0; level <= 100; level += 5) {
+  const option = document.createElement('option');
+  option.value = String(level); option.textContent = `${level}%`; levelSelect.append(option);
+}
+levelSelect.addEventListener('change', () => renderFloodLevel(levelSelect.value));
+renderFloodLevel(0);
 
 let isReady = false;
 let hasLocalEdits = false;
@@ -44,6 +52,7 @@ form.addEventListener('submit', async (event) => {
       id: ALERT_ID,
       signal_level: form.elements.signal.value,
       flood_status: form.elements.flood.value,
+      flood_level_percentage: Number(levelSelect.value),
       affected_locations: affectedLocationsAreArray ? locations : locations.join('\n'),
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
@@ -111,6 +120,8 @@ async function initializeDashboard() {
         form.elements.signal.value = data.signal_level;
         form.elements.flood.value = data.flood_status;
         form.elements.locations.value = formatLocationsForForm(data.affected_locations);
+        levelSelect.value = String(data.flood_level_percentage ?? 0);
+        renderFloodLevel(levelSelect.value);
       }
     }
   } catch (error) {
